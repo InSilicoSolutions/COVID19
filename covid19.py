@@ -86,11 +86,6 @@ def fasta_parser (f):
             break
 
 def make_fasta_per_protein_from_ncbi_virus_fasta ():
-    '''
-    print(f'Canonical SARS-CoV2 protein names from GenBank:')
-    for prot in canonical_protein_names:
-        print(f'\t{prot}')
-    '''
     f = open(args.input)
     records = {}
     for title, seq in fasta_parser(f):
@@ -269,23 +264,27 @@ async def get_clustered_proteins (request):
     return web.json_response(msa_targets)
 
 def align ():
-    msa_targets, num_seqs = make_fasta_per_protein()
+    msa_targets, num_seqs = make_fasta_per_protein_from_ncbi_virus_fasta()
     wf_l = open('clustered.txt', 'w')
     for msa_target in msa_targets:
         prot = msa_target.replace(' ', '_')
         if prot in args.skip_target:
             print(f'{prot} alignment is skipped by option.')
             continue
-        cmd = ['.' + os.sep + 'clustalo', '-i', f'{prot}.fasta', '-o', f'{prot}.clustal', '--outfmt=clu', '--force']
+        clustalo_dir = os.path.join('.', 'clustal')
+        if os_flag == 'linux' or os_flag == 'wsl':
+            clustalo = os.path.join(clustalo_dir, 'clustalo')
+        elif os_flag == 'windows':
+            clustalo = os.path.join(clustalo_dir, 'clustalo.exe')
+        elif os_flag == 'mac':
+            clustalo = os.path.join(clustalo_dir, 'clustal-omega-1.2.3-macosx')
+        cmd = [clustalo, '-i', f'{prot}.fasta', '-o', f'{prot}.clustal', '--outfmt=clu', '--force']
         print(' '.join(cmd))
-        pl = platform.platform()
-        if pl.startswith('Windows'):
+        if os_flag == 'windows':
             subprocess.run(cmd, shell=True)
-        elif pl.startswith('Linux'):
+        elif os_flag == 'mac':
             subprocess.run(cmd)
-        elif pl.startswith('Darwin'):
-            subprocess.run(cmd)
-        else:
+        elif os_flag == 'linux' or os_flag == 'wsl':
             subprocess.run(cmd)
         wf_l.write(f'{msa_target}\t{num_seqs[msa_target]}\n')
     wf_l.close()
@@ -301,25 +300,34 @@ def view ():
     source_dir = os.path.dirname(os.path.realpath(__file__))
     app.router.add_route('GET', '/cll', get_clustered_proteins)
     app.router.add_static('/', os.path.join(source_dir))
-    pl = platform.platform()
-    if pl.startswith('Windows'):
+    if os_flag == 'windows':
         def_host = 'localhost'
-    elif pl.startswith('Linux'):
-        if 'Microsoft' in pl:
-            def_host = 'localhost'
-        else:
-            def_host = '0.0.0.0'
-    elif pl.startswith('Darwin'):
+    elif os_flag == 'wsl':
+        def_host = 'localhost'
+    elif os_flag == 'linux':
         def_host = '0.0.0.0'
-    else:
-        def_host = 'localhost'
-    url = f'http://{def_host}:8080/index.html'
+    elif os_flag == 'mac':
+        def_host = '0.0.0.0'
+    url = f'http://{def_host}:8080/web/index.html'
     loop.create_task(open_url(url))
     web.run_app(app)
 
 async def open_url (url):
     webbrowser.open(url)
 
+pl = platform.platform()
+if pl.startswith('Windows'):
+    os_flag = 'windows'
+elif pl.startswith('Linux'):
+    if 'Microsoft' in pl:
+        os_flag = 'wsl'
+    else:
+        os_flag = 'linux'
+elif pl.startswith('Darwin'):
+    os_flag = 'mac'
+else:
+    print(f'Unsupported OS: {pl}')
+    exit()
 server_started = False
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', dest='input', default=None, help='SARS-CoV2 protein FASTA file, which can be downloaded at https://www.ncbi.nlm.nih.gov/labs/virus/vssi/#/virus?SeqType_s=Protein&VirusLineage_ss=SARS-CoV-2,%%20taxid:2697049 (short URL: shorturl.at/tzIU3). Click "Download" button and choose "Sequence data (FASTA Format) Protein" at Step 1, "Download All Records" at Step 2, and "Use default: Accession GenBank Title" at Step 3. Then, click "Download" button. The downloaded file"s path should be given as an argument.')
