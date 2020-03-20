@@ -112,6 +112,7 @@ def load_samples(sequences):
 def write_webpage(protein, clustal_file, web_file):
     out = open(web_file,'w')
     clustal = open(clustal_file, 'r')
+    out.write('<meta charset="UTF-8">\n')
     out.write('<html><head><script src="msa.min.gz.js"></script></head><body>\n')
     out.write('<div id="menuDiv"></div>\n')
     out.write('<div id="yourDiv">Loading ... </div>\n')
@@ -125,7 +126,7 @@ def write_webpage(protein, clustal_file, web_file):
 
     out.write('    var blob = new Blob([clustal], { type: \'text/plain\' });\n')
     out.write('    var file = new File([blob], "SURFACE.clustal", {type: "text/plain"});\n')
-    out.write('    var opts = {el: document.getElementById("yourDiv"), vis: {conserv: false, overviewbox: false, seqlogo: true}, conf: { dropImport: true }, zoomer: { menuFontsize: "12px", autoResize: true }};\n')
+    out.write('    var opts = {el: document.getElementById("yourDiv"), vis: {conserv: false, overviewbox: false, seqlogo: true}, conf: { dropImport: true }, zoomer: { menuFontsize: "12px", autoResize: true, alignmentHeight: 700, }};\n')
     out.write('    var m = new msa.msa(opts);\n')
     out.write('    m.u.file.importFile(clustal);\n')
     out.write('    var menuOpts = {el: document.getElementById(\'div\'), msa: m};\n')
