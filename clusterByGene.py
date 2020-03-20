@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 from Bio import GenBank
+import time
 
 validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
 
@@ -137,8 +138,21 @@ def write_webpage(protein, clustal_file, web_file):
     out.write('</body></html>\n')
     out.close()
          
- 
-            
+def write_index(seq_names, index_fp):
+    seq_names.sort()
+    with open(index_fp,'w') as out:
+        out.write('<meta charset="UTF-8">\n')
+        out.write('<html><head><title>COVID19 MSA</title></head>\n')
+        out.write('<body>\n')
+        out.write('<h1>COVID-19 Sequence Alignments</h1>\n')
+        out.write(f'<h4>Last aligned: {time.ctime()}</h4>\n')
+        out.write('<ul>\n')
+        for seq in seq_names:
+            fn = seq+'.html'
+            out.write(f'<li><a href="{fn}" target="_blank">{seq}</a></li>\n')
+        out.write('</ul>\n')
+        out.write('</body>\n')
+        out.write('</html>\n')
     
 sequences = load_ref()
 load_samples(sequences)
@@ -168,4 +182,4 @@ for key in sequences:
     #write a webpage that dispalys the alignment
     web_page = "data/"+key+".html"
     write_webpage(key, clustal_output, web_page)    
-
+    write_index(list(sequences.keys()), 'data/index.html')
