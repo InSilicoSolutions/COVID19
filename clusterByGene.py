@@ -126,7 +126,7 @@ def write_webpage(protein, clustal_file, web_file):
 
     out.write('    var blob = new Blob([clustal], { type: \'text/plain\' });\n')
     out.write('    var file = new File([blob], "SURFACE.clustal", {type: "text/plain"});\n')
-    out.write('    var opts = {el: document.getElementById("yourDiv"), vis: {conserv: false, overviewbox: false, seqlogo: true}, conf: { dropImport: true }, zoomer: { menuFontsize: "12px", autoResize: true, alignmentHeight: 700, }};\n')
+    out.write('    var opts = {el: document.getElementById("yourDiv"), vis: {conserv: false, overviewbox: false, seqlogo: true}, conf: { dropImport: true }, zoomer: { menuFontsize: "12px", autoResize: true, alignmentHeight: 700, labelNameLength: 180,}};\n')
     out.write('    var m = new msa.msa(opts);\n')
     out.write('    m.u.file.importFile(clustal);\n')
     out.write('    var menuOpts = {el: document.getElementById(\'div\'), msa: m};\n')
