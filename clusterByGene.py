@@ -156,13 +156,13 @@ for key in sequences:
     
     #run clustalo to do a multisequence alignment of each gene
     clustal_output = "data/"+key+".clustal"
-#     cmd = ['.' + os.sep + 'clustalo' + os.sep + 'clustalo', '-i', fasta_file, '-o', clustal_output, '--outfmt=clu', '--force']
-#     print(' '.join(cmd))
-#     pl = platform.platform()
-#     if pl.startswith('Windows'):
-#         subprocess.run(cmd, shell=True)
-#     else:
-#        subprocess.run(cmd)
+    cmd = ['.' + os.sep + 'clustal' + os.sep + 'clustalo', '-i', fasta_file, '-o', clustal_output, '--outfmt=clu', '--force']
+    print(' '.join(cmd))
+    pl = platform.platform()
+    if pl.startswith('Windows'):
+        subprocess.run(cmd, shell=True)
+    else:
+       subprocess.run(cmd)
         
     #write a webpage that dispalys the alignment
     web_page = "data/"+key+".html"
