@@ -3,6 +3,7 @@ import platform
 import subprocess
 from Bio import GenBank
 import time
+import dateutil.parser
 
 validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
 
@@ -77,7 +78,9 @@ def load_samples(sequences):
                 col_date = findItem(source, '/collection_date=')
             id = accession
             if col_date is not None:
-                id = col_date[:6] + '-' + id
+                dt = dateutil.parser.parse(col_date) # Time formatting is not consistent
+                norm_date = dt.strftime(r'%Y-%m-%d')
+                id = norm_date + '-' + id
             if country is not None:
                 country = country.replace(':', ' ')
                 id = country.split()[0][:7].strip() + '-' + id   
