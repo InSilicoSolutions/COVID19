@@ -4,6 +4,9 @@ import subprocess
 from Bio import GenBank
 import time
 import dateutil.parser
+import requests
+import xml.dom.minidom as minidom
+import time
 
 validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
 
@@ -154,6 +157,27 @@ def write_index(seq_names, index_fp):
         out.write('</body>\n')
         out.write('</html>\n')
     
+def get_genbank ():
+    r = requests.get('http://www.ncbi.nlm.nih.gov/genbank/sars-cov-2-seqs/#nucleotide-sequences')
+    dom1 = minidom.parseString(r.text)
+    for a in dom1.getElementsByTagName('a'):
+        if a.getAttribute('title') == 'SARS-CoV-2 nucleotide sequences':
+            link = a
+            break
+    href = link.getAttribute('href')
+    uids = href[href.index('nuccore') + 8:].split(',')
+    fn = os.path.join('data', 'genbank_sequences.gb')
+    wf = open(fn, 'w')
+    print(f'Fetching {len(uids)} GenBank records...')
+    for i in range(len(uids)):
+        uid = uids[i]
+        print(f'    {i + 1}: {uid}')
+        r2 = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id={uid}&&rettype=gb&retmode=text')
+        wf.write(r2.text)
+        time.sleep(1)
+    wf.close()
+
+get_genbank()
 sequences = load_ref()
 load_samples(sequences)
 
