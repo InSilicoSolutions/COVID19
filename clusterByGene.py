@@ -4,8 +4,7 @@ import subprocess
 from Bio import GenBank
 import time
 
-#validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
-validList = ['MEMBRANE','ORF7B'] #debug
+validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
 
 geneAlias = {'ORF3':'ORF3A', 'ORF7':'ORF7A', 'N':'NUCLEOCAPSID', 'S':'SURFACE', 'SPIKE':'SURFACE', 'M':'MEMBRANE', 'E': 'ENVELOPE'}
 
