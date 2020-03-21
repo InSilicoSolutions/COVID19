@@ -1,0 +1,3 @@
+data/*.fasta
+data/*.clustal
+data/*.html

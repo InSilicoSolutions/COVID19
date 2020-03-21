@@ -4,7 +4,8 @@ import subprocess
 from Bio import GenBank
 import time
 
-validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
+#validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
+validList = ['MEMBRANE','ORF7B'] #debug
 
 geneAlias = {'ORF3':'ORF3A', 'ORF7':'ORF7A', 'N':'NUCLEOCAPSID', 'S':'SURFACE', 'SPIKE':'SURFACE', 'M':'MEMBRANE', 'E': 'ENVELOPE'}
 
@@ -111,29 +112,26 @@ def load_samples(sequences):
 #Create a webpage for a protein to show its multi sequence alignment
 #embed the alignment into the page as a string to avoid cross domain errors.
 def write_webpage(protein, clustal_file, web_file):
+    with open('embed.js') as f:
+        embed = f.read()
     out = open(web_file,'w')
     clustal = open(clustal_file, 'r')
     out.write('<meta charset="UTF-8">\n')
-    out.write('<html><head><script src="msa.min.gz.js"></script></head><body>\n')
+    out.write('<html><head>\n')
+    out.write('<script src="msa.min.gz.js"></script>\n')
+    out.write('</head>\n')
+    out.write('<body>\n')
     out.write('<div id="menuDiv"></div>\n')
     out.write('<div id="yourDiv">Loading ... </div>\n')
     out.write('<script>\n')
-    
-    out.write('    var clustal = \'')
+    out.write('var clustal = \'')
     lines = clustal.readlines()
     for line in lines:
         out.write(line.rstrip() +'\\n')
     out.write('\'\n')
-
-    out.write('    var blob = new Blob([clustal], { type: \'text/plain\' });\n')
-    out.write('    var file = new File([blob], "SURFACE.clustal", {type: "text/plain"});\n')
-    out.write('    var opts = {el: document.getElementById("yourDiv"), vis: {conserv: false, overviewbox: false, seqlogo: true}, conf: { dropImport: true }, zoomer: { menuFontsize: "12px", autoResize: true, alignmentHeight: 700, labelNameLength: 180,}};\n')
-    out.write('    var m = new msa.msa(opts);\n')
-    out.write('    m.u.file.importFile(clustal);\n')
-    out.write('    var menuOpts = {el: document.getElementById(\'div\'), msa: m};\n')
-    out.write('    var defMenu = new msa.menu.defaultmenu(menuOpts);\n')
-    out.write('    m.addView("menu", defMenu);\n')
-    out.write('    m.render();\n')
+    out.write(embed)
+    if not(embed.endswith('\n')):
+        out.write('\n')
     out.write('</script>\n')
     out.write('</body></html>\n')
     out.close()
