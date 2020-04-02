@@ -1,0 +1,42 @@
+<meta charset="UTF-8">
+<html>
+    <head>
+        <title>COVID19 MSA</title>
+        <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+        <style>
+#viewer {
+    height: 100%;
+    width: 100%;
+}
+        </style>
+        <script>
+let v = undefined;
+
+const wait3DmolInit = () => {
+    return new Promise((resolve, reject)=>{
+        setTimeout(() => {
+            if (typeof($3Dmol) !== 'undefined') {
+                resolve();
+            } else {
+                wait3Dmol.then(resolve());
+            }
+        },100);
+    })
+};
+
+const main = async () => {
+    await wait3DmolInit();
+    let viewerDiv = $('#viewer');
+    v = $3Dmol.createViewer(viewerDiv);
+    await $3Dmol.download(`pdb:6VXX`,v);
+    v.setStyle({}, {cartoon:{}});
+    v.render();
+};
+
+window.onload = (async()=>{main()})
+</script>
+    </head>
+    <body>
+    <div id="viewer"></div>
+</body>
+</html>
