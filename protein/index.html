@@ -174,7 +174,7 @@ window.addEventListener('mouseup', e => {
     if (!(
         sel.anchorNode.parentElement.classList.contains('surf-span')
         &&
-        sel.extentNode.parentElement.classList.contains('surf-span')
+        sel.focusNode.parentElement.classList.contains('surf-span')
     )) {return;}
     v.setStyle({},{cartoon:{}})
     let anchorSpan = sel.anchorNode.parentElement;
