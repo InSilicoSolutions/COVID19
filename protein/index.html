@@ -4,13 +4,207 @@
         <title>COVID19 MSA</title>
         <script src="http://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
         <style>
-#viewer {
+#container {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+}
+#viewer {
     width: 100%;
+    position: relative;
+    flex-grow: 1;
+}
+#selector {
+    overflow-x: scroll;
+    font-family: Consolas, 'Courier New', Courier, monospace;
+    height: fit-content;
+}
+.surf-sel {
+    color: green;
+}
+.surf-nosel {
+    color: red;
+}
+.surf-nosel::selection {
+    background: lightcoral;
+}
+.selector-range {
+    font-family: monospace;
 }
         </style>
         <script>
 let v = undefined;
+let chainResidues = {};
+let alignment = `>surface
+MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTRGVYYPDKVFRSSVLHSTQDLFLPFFS
+NVTWFHAIHVSGTNGTKRFDNPVLPFNDGVYFASTEKSNIIRGWIFGTTLDSKTQSLLIV
+NNATNVVIKVCEFQFCNDPFLGVYYHKNNKSWMESEFRVYSSANNCTFEYVSQPFLMDLE
+GKQGNFKNLREFVFKNIDGYFKIYSKHTPINLVRDLPQGFSALEPLVDLPIGINITRFQT
+LLALHRSYLTPGDSSSGWTAGAAAYYVGYLQPRTFLLKYNENGTITDAVDCALDPLSETK
+CTLKSFTVEKGIYQTSNFRVQPTESIVRFPNITNLCPFGEVFNATRFASVYAWNRKRISN
+CVADYSVLYNSASFSTFKCYGVSPTKLNDLCFTNVYADSFVIRGDEVRQIAPGQTGKIAD
+YNYKLPDDFTGCVIAWNSNNLDSKVGGNYNYLYRLFRKSNLKPFERDISTEIYQAGSTPC
+NGVEGFNCYFPLQSYGFQPTNGVGYQPYRVVVLSFELLHAPATVCGPKKSTNLVKNKCVN
+FNFNGLTGTGVLTESNKKFLPFQQFGRDIADTTDAVRDPQTLEILDITPCSFGGVSVITP
+GTNTSNQVAVLYQDVNCTEVPVAIHADQLTPTWRVYSTGSNVFQTRAGCLIGAEHVNNSY
+ECDIPIGAGICASYQTQTNSPRRARSVASQSIIAYTMSLGAENSVAYSNNSIAIPTNFTI
+SVTTEILPVSMTKTSVDCTMYICGDSTECSNLLLQYGSFCTQLNRALTGIAVEQDKNTQE
+VFAQVKQIYKTPPIKDFGGFNFSQILPDPSKPSKRSFIEDLLFNKVTLADAGFIKQYGDC
+LGDIAARDLICAQKFNGLTVLPPLLTDEMIAQYTSALLAGTITSGWTFGAGAALQIPFAM
+QMAYRFNGIGVTQNVLYENQKLIANQFNSAIGKIQDSLSSTASALGKLQDVVNQNAQALN
+TLVKQLSSNFGAISSVLNDILSRLDKVEAEVQIDRLITGRLQSLQTYVTQQLIRAAEIRA
+SANLAATKMSECVLGQSKRVDFCGKGYHLMSFPQSAPHGVVFLHVTYVPAQEKNFTTAPA
+ICHDGKAHFPREGVFVSNGTHWFVTQRNFYEPQIITTDNTFVSGNCDVVIGIVNNTVYDP
+LQPELDSFKEELDKYFKNHTSPDVDLGDISGINASVVNIQKEIDRLNEVAKNLNESLIDL
+QELGKYEQYIKWPWYIWLGFIAGLIAIVMVTIMLCCMTSCCSCLKGCCSCGSCCKFDEDD
+SEPVLKGVKLHYT
+>spike
+--------------------------AYTNSFTRGVYYPDKVFRSSVLHSTQDLFLPFFS
+NVTWFHAIH----------DNPVLPFNDGVYFASTEKSNIIRGWIFGTTLDSKTQSLLIV
+NNATNVVIKVCEFQFCNDPFLGV---------------------NCTFEYV---------
+----SFKNLREFVFKNIDGYFKIYSKHTPINLVRDLPQGFSALEPLVDLPIGINITRFQT
+LLALHA-----------------AYYVGYLQPRTFLLKYNENGTITDAVDCALDPLSETK
+CTLKSFTVEKGIYQTSNFRVQPTESIVRFPNITNLCPFGEVFNATRFASVYAWNRKRISN
+CVADYSVLYNSASFSTFKCYGVSPTKLNDLCFTNVYADSFVIRGDEVRQIAPGQTGKIAD
+YNYKLPDDFTGCVIAWNSNNLDSK--GNYNYLYR-------KPFERD-------------
+-------IYFPLQSYGFQPTN-VGYQPYRVVVLSFELLHAPATVCGPKKSTNLVKNKCVN
+FNFNGLTGTGVLTESNKKFLPFQQFGRDIADTTDAVRDPQTLEILDITPCSFGGVSVITP
+GTNTSNQVAVLYQDVNCTEV--------------------NVFQTRAGCLIGAEHVNNSY
+ECDIPIGAGICASYQT------------SQSIIAYTMSLGAENSVAYSNNSIAIPTNFTI
+SVTTEILPVSMTKTSVDCTMYICGDSTECSNLLLQYGSFCTQLNRALTGIAVEQDKNTQE
+VFAQVKQIYKTPPIKDFGGFNFSQILPDPSKPSKRSFIEDLLFNKVT-------------
+-------------KFNGLTVLPPLLTDEMIAQYTSALLAGTITSGWTFGAGAALQIPFAM
+QMAYRFNGIGVTQNVLYENQKLIANQFNSAIGKIQDSLSSTASALGKLQDVVNQNAQALN
+TLVKQLSSNFGAISSVLNDILSRLDPPEAEVQIDRLITGRLQSLQTYVTQQLIRAAEIRA
+SANLAATKMSECVLGQSKRVDFCGKGYHLMSFPQSAPHGVVFLHVTYVPAQEKNFTTAPA
+ICHDGKAHFPREGVFVSNGTHWFVTQRNFYEPQIITTDNTFVSGNCDVVIGIVNNTVYDP
+LQPELDS-----------------------------------------------------
+------------------------------------------------------------
+-------------`
+const parseFA = (faText) => {
+    let faLines = faText.split('\n');
+    let seqs = {}
+    let curSeq = undefined
+    for (let i=0; i<faLines.length; i++) {
+        l = faLines[i];
+        if (l.startsWith('>')) {
+            curSeq = l.slice(1);
+            seqs[curSeq] = ''
+        } else {
+            seqs[curSeq] += l;
+        }
+    }
+    return seqs
+}
+let seqs = parseFA(alignment);
+
+const buildSelector = () => {
+    let surface = seqs.surface;
+    let spike = seqs.spike;
+    let selDiv = document.querySelector('#selector');
+    let surfDiv = document.createElement('div');    
+    surfDiv.id = 'surface';
+    selDiv.appendChild(surfDiv)
+    let spikeDiv = document.createElement('div');
+    spikeDiv.id = 'spike';
+    spikeDiv.style['user-select'] = 'none';
+    spikeDiv.style['white-space'] = 'nowrap';
+    selDiv.appendChild(spikeDiv)
+    spikeDiv.innerText = spike;
+    let curSeq = '';
+    let prevInSpike = false;
+    let curInSpike = false;
+    let resPos = 0;
+    let surfRes = '';
+    let spikeRes = '';
+    for (let i=0; i<surface.length; i++) {
+        surfRes = surface[i];
+        spikeRes = spike[i];
+        curInSpike = surfRes === spikeRes;
+        if (i === 0) {
+            prevInSpike = curInSpike;
+        }
+        if (curInSpike === prevInSpike) {
+            curSeq += surfRes;
+        } else {
+            let span = document.createElement('span');
+            span.classList.add('surf-span');
+            span.innerText = curSeq;
+            if (prevInSpike) {
+                span.classList.add('surf-sel');
+            } else {
+                span.classList.add('surf-nosel');
+            }
+            surfDiv.appendChild(span);
+            curSeq = surfRes;
+        }
+        prevInSpike = curInSpike;
+    }
+    
+}
+const listChains = (atomContainer, selector) => {
+	// atomContainer is an object that has the selectedAtoms method
+	// Generally either a 3dmol GLViewer, or 3dmol GLModel
+	var chains = [];
+	var atoms = atomContainer.selectedAtoms(selector)
+	for (var i = 0; i < atoms.length; i++){
+        var curChain = atoms[i].chain;
+		var found = $.inArray(curChain, chains);
+		if (found == -1){chains.push(curChain);}
+	};
+	return chains;
+}
+
+const listResidues = (atomContainer, selector) => {
+    // atomContainer is an object that has the selectedAtoms method
+	// Generally either a 3dmol GLViewer, or 3dmol GLModel
+	var resis = [];
+	var atoms = atomContainer.selectedAtoms(selector)
+	for (var i = 0; i < atoms.length; i++){
+        var curResi = atoms[i].resi;
+		var found = $.inArray(curResi, resis);
+		if (found == -1){resis.push(curResi);}
+	};
+	return resis;
+}
+
+window.addEventListener('mouseup', e => {
+    let sel = window.getSelection();
+    if (!sel.toString()) {return;}
+    if (!(
+        sel.anchorNode.parentElement.classList.contains('surf-span')
+        &&
+        sel.extentNode.parentElement.classList.contains('surf-span')
+    )) {return;}
+    v.setStyle({},{cartoon:{}})
+    let anchorSpan = sel.anchorNode.parentElement;
+    let prevSeq = anchorSpan.innerText.slice(0,sel.anchorOffset);
+    let curSpan = anchorSpan.previousSibling;
+    while (curSpan !== null) {
+        // prevSeq won't be in order, but the length will be right
+        prevSeq += curSpan.innerText;
+        curSpan = curSpan.previousSibling;
+    }
+    let surfSel = sel.toString();
+    let spikeSel = seqs.spike.slice(prevSeq.length, prevSeq.length+surfSel.length);
+    let startRes = seqs.spike.slice(0,prevSeq.length).replace(/-/g,'').length;
+    let nRes = spikeSel.replace(/-/g,'').length;
+    for (const chain in chainResidues) {
+        let residues = v.selectedAtoms
+        let resOffset = v.selectedAtoms({chain:chain})[0].resi;
+        let resis = chainResidues[chain].slice(startRes, startRes+nRes);
+        console.log(resis)
+        v.setStyle({chain:chain, resi: resis},{cartoon:{color:'red'}});
+    }
+    v.render();
+});
+
+function enableAtomLabels(){
+	v.setClickable({},true,function(atom,viewer,event,container) {
+        v.addLabel(atom.chain+':'+atom.resi,{position: atom, backgroundColor: 'darkgreen', backgroundOpacity: 0.8});
+    });
+    v.render();
+}
 
 const wait3DmolInit = () => {
     return new Promise((resolve, reject)=>{
@@ -24,19 +218,33 @@ const wait3DmolInit = () => {
     })
 };
 
+const getChainResidues = () => {
+    let chains = listChains(v,{});
+    for (let i=0; i<chains.length; i++) {
+        let chain = chains[i];
+        chainResidues[chain] = listResidues(v,{chain:chain});
+    }
+}
+
 const main = async () => {
     await wait3DmolInit();
     let viewerDiv = $('#viewer');
     v = $3Dmol.createViewer(viewerDiv);
     await $3Dmol.download(`pdb:6VXX`,v);
+    getChainResidues();
     v.setStyle({}, {cartoon:{}});
     v.render();
+    buildSelector();
+    enableAtomLabels();
 };
 
 window.onload = (async()=>{main()})
 </script>
     </head>
     <body>
-    <div id="viewer"></div>
+    <div id='container'>
+        <div id='selector'></div>
+        <div id="viewer"></div>
+    </div>
 </body>
 </html>
