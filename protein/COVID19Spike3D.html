@@ -256,14 +256,15 @@ const listResidues = (atomContainer, selector) => {
 }
 
 window.addEventListener('mouseup', e => {
-	currentSelection = []
     let sel = window.getSelection();
-    if (!sel.toString()) {return;}
+    if (!sel.toString()) return;
+    if(sel.focusNode !== e.target.firstChild) return;
     if (!(
         sel.anchorNode.parentElement.classList.contains('surf-span')
         &&
         sel.focusNode.parentElement.classList.contains('surf-span')
-    )) {return;}
+    )) return;
+	currentSelection = []
     v.setStyle({}, currentStyle.default)
     let anchorSpan = sel.anchorNode.parentElement;
     let prevSeq = anchorSpan.innerText.slice(0,sel.anchorOffset);
@@ -281,11 +282,11 @@ window.addEventListener('mouseup', e => {
         let residues = v.selectedAtoms
         let resOffset = v.selectedAtoms({chain:chain})[0].resi;
         let resis = chainResidues[chain].slice(startRes, startRes+nRes);
-        console.log(resis)
         v.setStyle({chain:chain, resi: resis}, currentStyle.selection);
         currentSelection.push({chain:chain, resi: resis})
     }
     v.render();
+    updateSurface();
 });
 
 function enableAtomLabels(){
@@ -316,8 +317,6 @@ const getChainResidues = () => {
 }
 
 const set3DStyle = (style) => {
-	res = v.selectedAtoms()
-	console.log(res)
 	v.setStyle({}, style.default)
 	for (index = 0; index < currentSelection.length; index++) { 
 		v.setStyle(currentSelection[index], style.selection); 
@@ -326,7 +325,23 @@ const set3DStyle = (style) => {
 	currentStyle = style
 }
 
+const updateSurface = (event) => {
+    let cb = document.querySelector('#surf-cb');
+    v.removeAllSurfaces();
+    if (cb.checked) {
+        if (currentSelection.length>1) {
+            let sel = currentSelection[0];
+            v.addSurface('SAS',{opacity:0.85, color:'grey'},{resi:sel.resi,invert:true},{})
+            v.addSurface('SAS',{opacity:0.85, color:'red'},{resi:sel.resi},{})
+        } else {
+            v.addSurface('SAS',{opacity:0.85},{},{})
+        }
+    }
+}
+
 const main = async () => {
+    // Nice friendly browsers like to check checkboxes, uncheck them
+    document.querySelector('#surf-cb').checked = false;
     await wait3DmolInit();
     let viewerDiv = $('#viewer');
     v = $3Dmol.createViewer(viewerDiv);
@@ -347,7 +362,9 @@ window.onload = (async()=>{main()})
 		<div id='buttons'>
 			<input type="button" value="Stick"	onclick="set3DStyle(styles.stick);"></input>
 			<input type="button" value="Sphere"	onclick="set3DStyle(styles.sphere);"></input>
-			<input type="button" value="Cartoon" onclick="set3DStyle(styles.cartoon);"></input>
+            <input type="button" value="Cartoon" onclick="set3DStyle(styles.cartoon);"></input>
+            <input type="checkbox" onchange="updateSurface();" id="surf-cb" checked="false"/>
+            <label for="surf-cb">Surface</label>
 		</div>
 		<div id="viewer"></div>
 	</div>
