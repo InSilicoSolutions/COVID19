@@ -1,38 +1,44 @@
 <meta charset="UTF-8">
 <html>
-    <head>
-        <title>COVID19 MSA</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/1.5.1/3Dmol-min.js"></script>
-        <style>
+<head>
+<title>COVID19 MSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/1.5.1/3Dmol-min.js"></script>
+<style>
 #container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 }
+
 #viewer {
-    width: 100%;
-    position: relative;
-    flex-grow: 1;
+	width: 100%;
+	position: relative;
+	flex-grow: 1;
 }
+
 #selector {
-    overflow-x: scroll;
-    font-family: Consolas, 'Courier New', Courier, monospace;
-    height: fit-content;
+	overflow-x: scroll;
+	font-family: Consolas, 'Courier New', Courier, monospace;
+	height: fit-content;
 }
+
 .surf-sel {
-    color: green;
+	color: green;
 }
+
 .surf-nosel {
-    color: red;
+	color: red;
 }
+
 .surf-nosel::selection {
-    background: lightcoral;
+	background: lightcoral;
 }
+
 .selector-range {
-    font-family: monospace;
+	font-family: monospace;
 }
-        </style>
-        <script>
+</style>
+<script>
 let v = undefined;
 let chainResidues = {};
 let alignment = `>surface
@@ -81,6 +87,24 @@ ICHDGKAHFPREGVFVSNGTHWFVTQRNFYEPQIITTDNTFVSGNCDVVIGIVNNTVYDP
 LQPELDS-----------------------------------------------------
 ------------------------------------------------------------
 -------------`
+
+let styles = {
+	sphere: {
+		default: {sphere:{color:'grey'}},
+		selection: {sphere:{color:'red'}}
+	},
+	cartoon: {
+		default: {cartoon:{color:'grey'}},
+		selection: {cartoon:{color:'red'}}
+	},
+	stick: {
+		default: {stick:{color:'grey'}},
+		selection: {stick:{color:'red'}}
+	}
+}
+let currentStyle = styles.cartoon 
+let currentSelection = []
+
 const parseFA = (faText) => {
     let faLines = faText.split('\n');
     let seqs = {}
@@ -98,10 +122,62 @@ const parseFA = (faText) => {
 }
 let seqs = parseFA(alignment);
 
+const buildPosString = (length) => {
+	let posStr = '1\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0'
+	let pos = 10
+	while (pos <= length) {
+		if (pos % 10 == 0) {
+			posStr += pos
+		} else if (pos % 10 == 1) {
+			//do nothing
+		} else if (pos > 99 && pos % 10 == 2){
+			//do nothing
+		} else if (pos > 999 && pos % 10 == 3){
+			//do nothing
+		} else {
+			posStr += '\xa0';
+		}
+		pos++
+	}
+	return posStr
+} 
+
+const buildMarkString = (length) => {
+	let markStr = '|\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0'
+	let pos = 10
+	while (pos <= length) {
+		if (pos % 10 == 0) {
+			markStr += '|'
+		} else {
+			markStr += '\xa0';
+		}
+		pos++
+	}
+	return markStr
+} 
+
 const buildSelector = () => {
     let surface = seqs.surface;
     let spike = seqs.spike;
+    let position = buildPosString(surface.length)
+    let marker =   buildMarkString(surface.length)
     let selDiv = document.querySelector('#selector');
+
+    let positionDiv = document.createElement('div');
+    positionDiv.id = 'marker';
+    positionDiv.style['user-select'] = 'none';
+    positionDiv.style['white-space'] = 'nowrap';
+    selDiv.appendChild(positionDiv)
+    positionDiv.innerText = position;
+
+    let markerDiv = document.createElement('div');
+    markerDiv.id = 'marker';
+    markerDiv.style['user-select'] = 'none';
+    markerDiv.style['white-space'] = 'nowrap';
+    selDiv.appendChild(markerDiv)
+    markerDiv.innerText = marker;
+
+    
     let surfDiv = document.createElement('div');    
     surfDiv.id = 'surface';
     selDiv.appendChild(surfDiv)
@@ -141,7 +217,18 @@ const buildSelector = () => {
         prevInSpike = curInSpike;
     }
     
+    let span = document.createElement('span');
+    span.classList.add('surf-span');
+    span.innerText = curSeq;
+    if (prevInSpike) {
+        span.classList.add('surf-sel');
+    } else {
+        span.classList.add('surf-nosel');
+    }
+    surfDiv.appendChild(span);
 }
+
+
 const listChains = (atomContainer, selector) => {
 	// atomContainer is an object that has the selectedAtoms method
 	// Generally either a 3dmol GLViewer, or 3dmol GLModel
@@ -169,6 +256,7 @@ const listResidues = (atomContainer, selector) => {
 }
 
 window.addEventListener('mouseup', e => {
+	currentSelection = []
     let sel = window.getSelection();
     if (!sel.toString()) {return;}
     if (!(
@@ -176,7 +264,7 @@ window.addEventListener('mouseup', e => {
         &&
         sel.focusNode.parentElement.classList.contains('surf-span')
     )) {return;}
-    v.setStyle({},{cartoon:{}})
+    v.setStyle({}, currentStyle.default)
     let anchorSpan = sel.anchorNode.parentElement;
     let prevSeq = anchorSpan.innerText.slice(0,sel.anchorOffset);
     let curSpan = anchorSpan.previousSibling;
@@ -194,7 +282,8 @@ window.addEventListener('mouseup', e => {
         let resOffset = v.selectedAtoms({chain:chain})[0].resi;
         let resis = chainResidues[chain].slice(startRes, startRes+nRes);
         console.log(resis)
-        v.setStyle({chain:chain, resi: resis},{cartoon:{color:'red'}});
+        v.setStyle({chain:chain, resi: resis}, currentStyle.selection);
+        currentSelection.push({chain:chain, resi: resis})
     }
     v.render();
 });
@@ -226,6 +315,17 @@ const getChainResidues = () => {
     }
 }
 
+const set3DStyle = (style) => {
+	res = v.selectedAtoms()
+	console.log(res)
+	v.setStyle({}, style.default)
+	for (index = 0; index < currentSelection.length; index++) { 
+		v.setStyle(currentSelection[index], style.selection); 
+    } 
+	v.render()
+	currentStyle = style
+}
+
 const main = async () => {
     await wait3DmolInit();
     let viewerDiv = $('#viewer');
@@ -240,11 +340,16 @@ const main = async () => {
 
 window.onload = (async()=>{main()})
 </script>
-    </head>
-    <body>
-    <div id='container'>
-        <div id='selector'></div>
-        <div id="viewer"></div>
-    </div>
+</head>
+<body>
+	<div id='container'>
+		<div id='selector'></div>
+		<div id='buttons'>
+			<input type="button" value="Stick"	onclick="set3DStyle(styles.stick);"></input>
+			<input type="button" value="Sphere"	onclick="set3DStyle(styles.sphere);"></input>
+			<input type="button" value="Cartoon" onclick="set3DStyle(styles.cartoon);"></input>
+		</div>
+		<div id="viewer"></div>
+	</div>
 </body>
 </html>
