@@ -7,13 +7,18 @@ import dateutil.parser
 import requests
 import xml.dom.minidom as minidom
 import time
+import sys
 
-validList = ['ORF7B', 'ORF1A', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
+#Note ORF1A not in the list - it is a truncated version of ORF1AB so we are processing that one.
+validList = ['ORF7B', 'ORF10', 'NUCLEOCAPSID', 'ORF8', 'ORF7A', 'ORF6', 'MEMBRANE', 'ENVELOPE', 'ORF3A', 'SURFACE', 'ORF1AB']
 
 geneAlias = {'ORF3':'ORF3A', 'ORF7':'ORF7A', 'N':'NUCLEOCAPSID', 'S':'SURFACE', 'SPIKE':'SURFACE', 'M':'MEMBRANE', 'E': 'ENVELOPE'}
 
+#ORF1AB is converted to 16 non structural proteins by post translational modifications.  There are the positions of the embedded proteins used to split up ORF1AB
+nonStrucural = [('LEADER', 1, 180), ('NSP2', 181, 818), ('NSP3', 819, 2763), ('NSP4', 2764, 3263), ('3C_LIKE_PROTEINASE', 3264, 3569), ('NSP6', 3570, 3859), ('NSP7', 3860, 3942), ('NSP8', 3943, 4140), ('NSP9', 4141, 4253), ('NSP10', 4254, 4392), ('NSP11',4393,4405), ('RNA_POLYMERASE', 4393, 5324), ('HELICASE', 5325, 5925), ('EXONUCLEASE', 5926, 6452), ('NSP15', 6453, 6798), ('NSP16',  6799, 7096)]
+
 #load reference sequence of each virus gene.  Return it in a hash keyed by gene.
-#Put the sequence in a list becasue we will add more sequences when samples are loaded.
+#Put the sequence in a list because we will add more sequences when samples are loaded.
 def load_ref():
     ref_file = open("data/refernece_sequence.fasta", "r")
     line = ref_file.readline()
@@ -23,15 +28,23 @@ def load_ref():
         if line.startswith(">"):
             if gene != "" and gene in validList:
                 seq_dict[gene] = ['Reference|' + sequence]
+                     
             gene = line.split()[1].upper()
             sequence = ""
         else:
             sequence += line.strip()
     
         line = ref_file.readline()
-        
-    if gene in validList:    
-        seq_dict[gene] = ['Reference|' + sequence]
+    
+    #Last protein in the reference file is the ORF1AB protein - need to change code if that changes.    
+    if gene != 'ORF1AB' or len(sequence) < 7096:
+        print('ERROR: Expecting ORF1AB as the last gene with length of 7096 in the reference file.  Need to change code!!!!!')
+        sys.exit(1)
+    else:    
+        #split out the nonstructural proteins in Orf1AB the same way as they are split in the samples.
+        for nsProt in nonStrucural:
+            seq_dict[nsProt[0]] = ['Reference|' + sequence[nsProt[1]-1:nsProt[2]]]
+       
     return(seq_dict)    
 
 def findFeature(record, key):
@@ -111,8 +124,18 @@ def load_samples(sequences):
                 
                 sequence = findItem(gene, '/translation=')  
                 if (id is not None and sequence is not None):
-                    sequences[gene_name].append(id+'|' + sequence)
+                    if gene_name == 'ORF1AB':
+                        loadOrf1AB(sequences, id, sequence)
+                    else:
+                        sequences[gene_name].append(id+'|' + sequence)
  
+#Split up ORF1AB into the embedded non structural proteins
+def loadOrf1AB(sequences, id, sequence):
+    if len(sequence) < 7096:
+        return
+    
+    for nsProt in nonStrucural:
+        sequences[nsProt[0]].append(id+'|' + sequence[nsProt[1]-1:nsProt[2]])
 
 #Create a webpage for a protein to show its multi sequence alignment
 #embed the alignment into the page as a string to avoid cross domain errors.
@@ -177,7 +200,8 @@ def get_genbank ():
         time.sleep(1)
     wf.close()
 
-get_genbank()
+if '-n' in sys.argv:
+    get_genbank()
 sequences = load_ref()
 load_samples(sequences)
 
