@@ -31,8 +31,9 @@ proteinWidget.ProteinViewer = class {
     }
     
     loadPDBText (pdbText) {
+        this.clearAlignments();
         this.viewer.clear()
-            .addModel(pdbText,'pdb')
+            .addModel(pdbText,'pdb');
         this.viewer.setStyle(this.baseStyle)
             .zoomTo()
             .render();
@@ -65,6 +66,14 @@ proteinWidget.ProteinViewer = class {
             alignment: new proteinWidget.Alignment(alignText)
         }
         return alignId;
+    }
+
+    removeAlignment (alignId) {
+        delete this.alignments[alignId]
+    }
+
+    clearAlignments () {
+        this.alignments = {};
     }
 
     _drawHighlight () {
