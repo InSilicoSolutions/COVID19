@@ -1,0 +1,52 @@
+exAligns = [
+    [[2,6],[0,4]],
+    [[8,12],[6,10]],
+    [[13,14],[10,11]],
+    [[15,19],[13,17]],
+    [[20,23],[17,20]]
+]
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,0,2))
+    ===
+    JSON.stringify([])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,1,5))
+    ===
+    JSON.stringify([[0,3]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,3,6))
+    ===
+    JSON.stringify([[1,4]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,5,10))
+    ===
+    JSON.stringify([[3,4],[6,8]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,6,8))
+    ===
+    JSON.stringify([])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,12,14))
+    ===
+    JSON.stringify([[10,11]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,14,16))
+    ===
+    JSON.stringify([[13,14]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,15,21))
+    ===
+    JSON.stringify([[13,17],[17,18]])
+)
+console.assert(
+    JSON.stringify(ProteinViewer.alignedSlices(exAligns,12,25))
+    ===
+    JSON.stringify([[10,11],[13,17],[17,20]])
+)
