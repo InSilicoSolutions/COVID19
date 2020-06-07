@@ -4,8 +4,9 @@ proteinWidget.ProteinViewer = class {
         this.div = div;
         this.viewer = $3Dmol.createViewer(this.div.id);
         this.residues = {};
-        this.baseStyle = {cartoon:{}};
-        this.highlightStyle = {cartoon:{color:'red'}};
+        this.baseStyle = {};
+        this.highlightStyle = {};
+        this.presetStyle('cartoon');
         this.alignments = {};
         this.showSurface = false;
         this.surfaceType = 'SAS';
@@ -127,6 +128,24 @@ proteinWidget.ProteinViewer = class {
         this.render();
         this.highlighted = false;
         this.toggleSurface(this.showSurface);
+    }
+
+    presetStyle(styleName) {
+        switch (styleName){
+            case 'cartoon':
+                this.baseStyle = {cartoon:{}};
+                this.highlightStyle = {cartoon:{color:'red'}};
+                break;
+            case 'sphere':
+                this.baseStyle = {sphere:{color:'gray'}};
+                this.highlightStyle = {sphere:{color:'red'}};
+                break;
+            case 'stick':
+                this.baseStyle = {stick:{color:'gray'}};
+                this.highlightStyle = {stick:{color:'red'}};
+                break;
+        }
+        this.render();
     }
 }
 
