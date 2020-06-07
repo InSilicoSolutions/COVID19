@@ -4,7 +4,6 @@ proteinWidget.ProteinViewer = class {
         this.div = div;
         this.viewer = $3Dmol.createViewer(this.div.id);
         this.residues = {};
-        // this.baseStyle = {cartoon:{colorscheme:'chainHetatm'}};
         this.baseStyle = {cartoon:{}};
         this.highlightStyle = {cartoon:{color:'red'}};
         this.alignments = {};
@@ -30,10 +29,10 @@ proteinWidget.ProteinViewer = class {
         this.viewer.setStyle(this.baseStyle)
             .zoomTo()
             .render();
-        this._parseModel();
+        this._parseResidues();
     }
 
-    _parseModel () {
+    _parseResidues () {
         const atoms = this.viewer.selectedAtoms({})
         // Get unique chains
         const chains = atoms
@@ -92,15 +91,15 @@ proteinWidget.Alignment = class {
         this.mask = []
         const [seqBase, seqSymb, seqTarg] = this.alignText.split('\n').slice(0,3);
         let inAlign = false;
-        let indexBase = 0;
-        let indexTarg = 0;
+        let indexBase = 0; // Index on the base sequence, ignoring gaps
+        let indexTarg = 0; // Index on the target sequence, ignoring gaps
         let startBase;
         let startTarg;
         let endBase;
         let endTarg;
         for (let i=0; i<seqSymb.length; i++) {
-            if (seqSymb[i] === '|') {
-                if (!inAlign) {
+            if (seqSymb[i] === '|') { // In an alignment
+                if (!inAlign) { // Start of align
                     inAlign=true
                     startBase=indexBase;
                     startTarg=indexTarg;
@@ -109,8 +108,8 @@ proteinWidget.Alignment = class {
                 }
                 indexBase += 1
                 indexTarg += 1
-            } else {
-                if (inAlign) {
+            } else { // In a diff of some kind
+                if (inAlign) { // Start of diff
                     inAlign=false;
                     endBase = indexBase;
                     endTarg = indexTarg;
@@ -120,6 +119,7 @@ proteinWidget.Alignment = class {
                     endBase=null;
                     endTarg=null;
                 }
+                // Increment indices if sequence is not gapped
                 indexBase += seqBase[i].match(/[a-z]/i) ? 1 : 0;
                 indexTarg += seqTarg[i].match(/[a-z]/i) ? 1 : 0;
             }

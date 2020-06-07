@@ -11,6 +11,6 @@ window.onload = () => {
     v = new proteinWidget.ProteinViewer(div);
     v.loadPDB('2ABJ').then(()=>{
         alignId = v.addAlignment('G',align);
-        v.highlight(alignId,170,181);
+        v.highlight(alignId,165,200);
     });
 }
