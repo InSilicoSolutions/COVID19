@@ -7,6 +7,12 @@ proteinWidget.ProteinViewer = class {
         this.baseStyle = {cartoon:{}};
         this.highlightStyle = {cartoon:{color:'red'}};
         this.alignments = {};
+        this.showSurface = false;
+        this.surfaceType = 'SAS';
+        this.baseSurfaceStyle = {opacity:0.85, color:'grey'}
+        this.highlightSurfaceStyle = {opacity:0.85, color:'red'}
+        this.highlightSelector = {invert:true};
+        this.highlighted = false;
     }
     
     async fetchPDB (pdbId) {
@@ -48,20 +54,6 @@ proteinWidget.ProteinViewer = class {
         }
     }
 
-    highlightChain (chain, start, end) {
-        this.viewer.setStyle(
-            {
-                chain: chain,
-                resi: this.residues[chain].slice(start,end)
-            },
-            this.highlightStyle
-        ).render();
-    }
-
-    setBaseStyle () {
-        this.viewer.setStyle(this.baseStyle).render();
-    }
-
     addAlignment (chain, alignText) {
         let alignId=Math.random().toString(36).substring(7);
         while (this.alignments[alignId]!==undefined){
@@ -74,14 +66,67 @@ proteinWidget.ProteinViewer = class {
         return alignId;
     }
 
+    _drawHighlight () {
+        this.viewer.setStyle(
+            this.highlightSelector,
+            this.highlightStyle
+        );
+    }
+
     highlight (alignId, beg, end) {
         const chain = this.alignments[alignId].chain;
         const alignment = this.alignments[alignId].alignment;
         const slices = alignment.mapSlice(beg,end);
-        console.log(slices);
-        for (let i=0; i<slices.length; i++) {
-            this.highlightChain(chain, slices[i][0], slices[i][1]);
+        let resis = slices
+            .map(slice=>this.residues[chain].slice(slice[0],slice[1]))
+            .flat();
+        this.highlightSelector = {chain:chain,resi:resis};
+        this._drawHighlight();
+        this.viewer.render();
+        this.highlighted = true;
+        this.toggleSurface(this.showSurface);
+    }
+
+    toggleSurface (showSurface) {
+        showSurface = showSurface===undefined ? !this.showSurface : Boolean(showSurface);
+        this.viewer.removeAllSurfaces();
+        if (showSurface) {
+            if (this.highlighted) {
+                this.viewer.addSurface(
+                    this.surfaceType,
+                    this.baseSurfaceStyle,
+                    {...this.highlightSelector,invert:true},
+                    {}
+                );
+                this.viewer.addSurface(
+                    this.surfaceType,
+                    this.highlightSurfaceStyle,
+                    this.highlightSelector,
+                    {}
+                );
+            } else {
+                this.viewer.addSurface(
+                    this.surfaceType,
+                    this.baseSurfaceStyle,
+                    {},
+                    {}
+                )
+            }
         }
+        this.showSurface = showSurface;
+    }
+    
+    render () {
+        this.viewer.setStyle({},this.baseStyle);
+        this._drawHighlight();
+        this.viewer.render();
+    }
+
+    unHighlight() {
+        this.highlightSelector = {invert:true}
+        this.render();
+        this.highlighted = false;
+        this.toggleSurface(this.showSurface);
     }
 }
 
@@ -89,7 +134,9 @@ proteinWidget.Alignment = class {
     constructor (alignText) {
         this.alignText = alignText;
         this.mask = []
-        const [seqBase, seqSymb, seqTarg] = this.alignText.split('\n').slice(0,3);
+        const [seqBase, seqSymb, seqTarg] = this.alignText
+            .split('\n')
+            .slice(0,3);
         let inAlign = false;
         let indexBase = 0; // Index on the base sequence, ignoring gaps
         let indexTarg = 0; // Index on the target sequence, ignoring gaps
@@ -113,7 +160,10 @@ proteinWidget.Alignment = class {
                     inAlign=false;
                     endBase = indexBase;
                     endTarg = indexTarg;
-                    this.mask.push([[startBase,endBase],[startTarg,endTarg]]);
+                    this.mask.push([
+                        [startBase,endBase],
+                        [startTarg,endTarg]
+                    ]);
                     startBase=null;
                     startTarg=null;
                     endBase=null;
@@ -132,11 +182,11 @@ proteinWidget.Alignment = class {
     }
     mapSlice = (beg, end) => {
         let targRanges = [];
-        for (let segIndex=0; segIndex<this.mask.length; segIndex++) {
-            let [base, targ] = this.mask[segIndex];
-            if (end <= base[0]) { // segment is fully beyond slice
+        for(const section of this.mask){
+            let [base, targ] = section;
+            if (end <= base[0]) { // section is fully beyond slice
                 break;
-            } else if (base[1] <= beg) { // segment is fully before slice
+            } else if (base[1] <= beg) { // section is fully before slice
                 continue;
             } else { // Some amount of overlap
                 let normBeg = base[0]<=beg ? beg-base[0] : 0;
