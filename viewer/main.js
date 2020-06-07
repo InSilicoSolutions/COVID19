@@ -14,7 +14,6 @@ window.onload = () => {
     alignId = v.addAlignment('G',align);
     v.highlight(alignId,165,200);
   });
-  
 }
 
 const tour = () => {
@@ -44,7 +43,5 @@ const tour = () => {
     await sleep(5000);
     console.log('Highlight a different portion');
     v.highlight(alignId,10,200);
-
   })()
-
 }
