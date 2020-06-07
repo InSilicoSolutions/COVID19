@@ -1,10 +1,13 @@
-class ProteinViewer {
+var proteinWidget = {};
+proteinWidget.ProteinViewer = class {
     constructor (div) {
         this.div = div;
         this.viewer = $3Dmol.createViewer(this.div.id);
         this.residues = {};
+        // this.baseStyle = {cartoon:{colorscheme:'chainHetatm'}};
         this.baseStyle = {cartoon:{}};
         this.highlightStyle = {cartoon:{color:'red'}};
+        this.alignments = {};
     }
     
     async fetchPDB (pdbId) {
@@ -60,10 +63,77 @@ class ProteinViewer {
         this.viewer.setStyle(this.baseStyle).render();
     }
 
-    static alignedSlices = (aligns, beg, end) => {
+    addAlignment (chain, alignText) {
+        let alignId=Math.random().toString(36).substring(7);
+        while (this.alignments[alignId]!==undefined){
+            alignId=Math.random().toString(36).substring(7);
+        }
+        this.alignments[alignId] = {
+            chain: chain,
+            alignment: new proteinWidget.Alignment(alignText)
+        }
+        return alignId;
+    }
+
+    highlight (alignId, beg, end) {
+        const chain = this.alignments[alignId].chain;
+        const alignment = this.alignments[alignId].alignment;
+        const slices = alignment.mapSlice(beg,end);
+        console.log(slices);
+        for (let i=0; i<slices.length; i++) {
+            this.highlightChain(chain, slices[i][0], slices[i][1]);
+        }
+    }
+}
+
+proteinWidget.Alignment = class {
+    constructor (alignText) {
+        this.alignText = alignText;
+        this.mask = []
+        const [seqBase, seqSymb, seqTarg] = this.alignText.split('\n').slice(0,3);
+        let inAlign = false;
+        let indexBase = 0;
+        let indexTarg = 0;
+        let startBase;
+        let startTarg;
+        let endBase;
+        let endTarg;
+        for (let i=0; i<seqSymb.length; i++) {
+            if (seqSymb[i] === '|') {
+                if (!inAlign) {
+                    inAlign=true
+                    startBase=indexBase;
+                    startTarg=indexTarg;
+                    endBase=null;
+                    endTarg=null;
+                }
+                indexBase += 1
+                indexTarg += 1
+            } else {
+                if (inAlign) {
+                    inAlign=false;
+                    endBase = indexBase;
+                    endTarg = indexTarg;
+                    this.mask.push([[startBase,endBase],[startTarg,endTarg]]);
+                    startBase=null;
+                    startTarg=null;
+                    endBase=null;
+                    endTarg=null;
+                }
+                indexBase += seqBase[i].match(/[a-z]/i) ? 1 : 0;
+                indexTarg += seqTarg[i].match(/[a-z]/i) ? 1 : 0;
+            }
+        }
+        if (inAlign) {
+            endBase = indexBase;
+            endTarg = indexTarg;
+            this.mask.push([[startBase,endBase],[startTarg,endTarg]]);
+        }
+    }
+    mapSlice = (beg, end) => {
         let targRanges = [];
-        for (let segIndex=0; segIndex<aligns.length; segIndex++) {
-            let [base, targ] = aligns[segIndex];
+        for (let segIndex=0; segIndex<this.mask.length; segIndex++) {
+            let [base, targ] = this.mask[segIndex];
             if (end <= base[0]) { // segment is fully beyond slice
                 break;
             } else if (base[1] <= beg) { // segment is fully before slice
