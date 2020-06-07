@@ -7,7 +7,7 @@ class ProteinViewer {
         this.highlightStyle = {cartoon:{color:'red'}};
     }
     
-    async getPDB (pdbId) {
+    async fetchPDB (pdbId) {
         const response = await fetch(`https://files.rcsb.org/download/${pdbId}.pdb`);
         if (response.ok) {
             return await response.text();
@@ -17,24 +17,27 @@ class ProteinViewer {
     }
     
     async loadPDB (pdbId) {
-        const pdbContent = await this.getPDB(pdbId);
-        this.loadPDBFile(pdbContent);
+        const pdbText = await this.fetchPDB(pdbId);
+        this.loadPDBText(pdbText);
     }
     
-    loadPDBFile (pdbContent) {
-        this.viewer.clear();
-        this.viewer.addModel(pdbContent,'pdb');
+    loadPDBText (pdbText) {
+        this.viewer.clear()
+            .addModel(pdbText,'pdb')
         this.viewer.setStyle(this.baseStyle)
-        this.viewer.center().zoomTo().render();
-        this.parseModel();
+            .zoomTo()
+            .render();
+        this._parseModel();
     }
 
-    parseModel () {
+    _parseModel () {
         const atoms = this.viewer.selectedAtoms({})
+        // Get unique chains
         const chains = atoms
             .map(atom=>atom.chain)
             .filter((chain,i,all)=>all.indexOf(chain)===i);
         for (let i=0; i<chains.length; i++) {
+            // Get unique resis
             const chain = chains[i];
             this.residues[chain] = atoms
                 .filter(atom=>atom.chain===chain)
@@ -44,11 +47,10 @@ class ProteinViewer {
     }
 
     highlightChain (chain, start, end) {
-        console.log(chain,start,end);
         this.viewer.setStyle(
             {
-                chain:chain,
-                resi:this.residues[chain].slice(start,end)
+                chain: chain,
+                resi: this.residues[chain].slice(start,end)
             },
             this.highlightStyle
         ).render();
@@ -62,11 +64,11 @@ class ProteinViewer {
         let targRanges = [];
         for (let segIndex=0; segIndex<aligns.length; segIndex++) {
             let [base, targ] = aligns[segIndex];
-            if (end <= base[0]) { //tail
+            if (end <= base[0]) { // segment is fully beyond slice
                 break;
-            } else if (base[1] <= beg) { //head
+            } else if (base[1] <= beg) { // segment is fully before slice
                 continue;
-            } else {
+            } else { // Some amount of overlap
                 let normBeg = base[0]<=beg ? beg-base[0] : 0;
                 let normEnd = end-base[0];
                 targRanges.push([
