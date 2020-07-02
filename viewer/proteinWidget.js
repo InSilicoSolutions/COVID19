@@ -208,7 +208,7 @@ proteinWidget.Alignment = class {
             this.mask.push([[startBase,endBase],[startTarg,endTarg]]);
         }
     }
-    mapSlice = (beg, end) => {
+    mapSlice (beg, end) {
         let targRanges = [];
         for(const section of this.mask){
             let [base, targ] = section;
